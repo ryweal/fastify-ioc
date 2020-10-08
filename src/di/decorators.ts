@@ -8,6 +8,13 @@ const SYM_INJECTION_SCOPE = Symbol('injection:scope')
 const SYM_INJECTION_PROVIDER = Symbol('injection:scope')
 const FUNCTION_PARAMETERS_TYPES = 'design:paramtypes'
 
+export function isClass(target: unknown): target is Class<any> {
+  return typeof(target) === 'function'
+}
+export function isPrototype(target: unknown): target is Prototype<any> {
+  return typeof(target) === 'object'
+}
+
 export class Decorators {
   public static defineInjectableClass(clazz: Class<any>): void {
     Reflect.defineMetadata(SYM_INJECTION_CLASS, Symbol('injection:class:reference'), clazz)

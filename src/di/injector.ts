@@ -1,27 +1,34 @@
 import { Provider, ProviderParameters } from './provider'
 import { Container, ContainerInitialisation } from './container'
 import { Decorators } from './decorators'
+import { Injectable } from './injectable'
 
 export interface Class<T> { new (...args:any[]) : T }
 export interface InjectableClass<T> extends Class<T> {}
 export type Prototype<T> = object
 
+@Injectable({
+  scope: 'module'
+})
 export class Injector {
   public readonly container: Container
 
-  constructor(initialValues?: ContainerInitialisation, container?: Container) {
-    if(container === undefined)
-      this.container = new Container('root', initialValues)
-    else
-      this.container = container
-
+  constructor(initialValues?: ContainerInitialisation) {
+    this.container = new Container('root', initialValues)
     this.container.instances.set(Decorators.getClassInjectionReference(Injector), this)
+  }
+
+  public static of(container: Container): Injector {
+    const injector = new Injector();
+    (<any>injector).container = container
+    injector.container.instances.set(Decorators.getClassInjectionReference(Injector), injector)
+    return injector
   }
 
   extendWith(name: string, initialValues?: ContainerInitialisation) {
     const childContainer = new Container(name, initialValues)
     childContainer.parent = this.container
-    return new Injector({}, childContainer)
+    return Injector.of(childContainer)
   }
 
   resolveClass<T>(clazz: Class<T>): T {
@@ -35,8 +42,8 @@ export class Injector {
       return this.findInstance(reference)
     } else {
       const instance = this.createInstance(clazz)
-      if(this.hasScope(scope))
-        this.findScope(scope).instances.set(reference, instance)
+      if(this.hasContainer(scope))
+        this.findContainer(scope).instances.set(reference, instance)
       return instance as T
     }
   }
@@ -48,6 +55,9 @@ export class Injector {
   }
 
   resolveFunctionArguments(prototype: Prototype<any>, functionName: string | symbol): any[] {
+    if(!Decorators.isInjectableFunction(prototype,functionName))
+      throw new Error(`Function ${functionName.toString()} is not injectable`)
+
     const parametersTypes = Decorators.getFunctionParametersTypes(prototype, functionName)
     const providers = Decorators.getFunctionParametersProvider(prototype, functionName)
 
@@ -136,7 +146,7 @@ export class Injector {
     return false
   }
 
-  public findScope(name: string): Container {
+  public findContainer(name: string): Container {
     for(let container of this.parents())
       if(container.name === name)
         return container
@@ -144,7 +154,7 @@ export class Injector {
     throw new Error(`Cannot resolve container for name ${name}`)
   }
 
-  public hasScope(name: string): boolean {
+  public hasContainer(name: string): boolean {
     for(let container of this.parents())
       if(container.name === name)
         return true
