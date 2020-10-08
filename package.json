@@ -1,0 +1,35 @@
+{
+  "name": "fastify-ioc",
+  "version": "1.0.0",
+  "description": "",
+  "main": "build/index.js",
+  "dependencies": {
+    "reflect-metadata": "^0.1.13"
+  },
+  "devDependencies": {
+    "@types/chai": "^4.2.13",
+    "@types/mocha": "^8.0.3",
+    "@types/node": "^11.15.30",
+    "chai": "^4.2.0",
+    "mocha": "^8.1.3",
+    "nyc": "^15.1.0",
+    "ts-node": "^9.0.0",
+    "typescript": "^4.0.3"
+  },
+  "scripts": {
+    "test": "mocha -r ts-node/register 'src/**/*.spec.ts'",
+    "test-cov": "nyc --reporter=text --exclude=**/*.spec.ts mocha -r ts-node/register 'src/**/*.spec.ts'",
+    "test-cov-report": "nyc --reporter=html --report-dir=./report/coverage --exclude=**/*.spec.ts mocha -r ts-node/register 'src/**/*.spec.ts'"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ryweal/fastify-ioc.git"
+  },
+  "keywords": [],
+  "author": "ryweal",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/ryweal/fastify-ioc/issues"
+  },
+  "homepage": "https://github.com/ryweal/fastify-ioc#readme"
+}
