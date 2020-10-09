@@ -7,29 +7,29 @@ export interface OnRequest {
   onRequest(...args: any[]): Promise<any>
 }
 export interface OnRequest {
-  preParsingHookHandler(...args: any[]): Promise<any>
+  preParsing(...args: any[]): Promise<any>
 }
-export interface PreValidationHookHandler {
-  preValidationHookHandler(...args: any[]): Promise<any>
+export interface PreValidation {
+  preValidation(...args: any[]): Promise<any>
 }
-export interface PreHandlerHookHandler {
-  preHandlerHookHandler(...args: any[]): Promise<any>
+export interface PreHandler {
+  preHandler(...args: any[]): Promise<any>
 }
 export interface RequestHandler {
   handler(...args: any[]): Promise<void>
 }
-export interface PreSerializationHookHandler<Payload> {
-  preSerializationHookHandler(payload:Payload, ...args: any[]): Promise<any>
+export interface PreSerialization<Payload> {
+  preSerialization(payload:Payload, ...args: any[]): Promise<any>
 }
-export interface OnSendHookHandler<Payload> {
-  onSendHookHandler(payload:Payload, ...args: any[]): Promise<any>
+export interface OnSend<Payload> {
+  onSend(payload:Payload, ...args: any[]): Promise<any>
 }
-export interface OnResponseHookHandler {
-  onResponseHookHandler(...args: any[]): Promise<any>
+export interface OnResponse {
+  onResponse(...args: any[]): Promise<any>
 }
-export interface OnTimeoutHookHandler {
-  onTimeoutHookHandler(...args: any[]): Promise<any>
+export interface OnTimeout {
+  onTimeout(...args: any[]): Promise<any>
 }
-export interface OnErrorHookHandler {
-  onErrorHookHandler(error: Error, ...args: any[]): Promise<any>
+export interface OnError {
+  onError(error: Error, ...args: any[]): Promise<any>
 }

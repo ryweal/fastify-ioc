@@ -5,7 +5,6 @@ import { FastifyInstance, FastifyPluginAsync, FastifyPluginCallback } from 'fast
 import { asRoute } from '../controller/controller'
 
 declare module 'fastify' {
-
   interface FastifyInstance {
     injector: Injector
     module: Module
@@ -15,12 +14,12 @@ declare module 'fastify' {
 export interface Module extends Class<any>{}
 export interface RyModuleOptions {
   controllers?: Class<RequestHandler>[]
-  submodules?: SubModule[],//Array<SubModule | Module>
+  submodules?: Array<RoutingModule | Module>
   hooks?: Hook[],
   plugins?: PluginDefinition[]
   injection?: ContainerInitialisation
 }
-export interface SubModule {
+export interface RoutingModule {
   prefix: string,
   module: Module
 }
@@ -37,20 +36,23 @@ export interface OnInit {
 }
 const SYM_MODULE = Symbol('module')
 export const RyModule = (options: RyModuleOptions) => {
-  return (constructor: Function) => {
+  return (constructor: Class<any>) => {
     Reflect.defineMetadata(SYM_MODULE, options, constructor)
   }
 }
 
+function isModule(obj: unknown): obj is Module {
+  return typeof(obj) === 'function' && Reflect.hasMetadata(SYM_MODULE, obj)
+}
+
 export function asPlugin(moduleClass: Module) {
   return async (moduleInstance: FastifyInstance) => {
+    if(!Reflect.hasMetadata(SYM_MODULE, moduleClass))
+      throw new Error(moduleClass?.name+' is not a module')
+
     const options = Reflect.getMetadata(SYM_MODULE, moduleClass) as RyModuleOptions
-    let injector: Injector;
-    if(moduleInstance.injector === undefined){
-      injector = new Injector(options.injection)
-    } else {
-      injector = moduleInstance.injector.extendWith('module', options.injection)
-    }
+
+    const injector = createModuleInjector(moduleInstance, options)
     moduleInstance.decorate('injector', injector)
     moduleInstance.decorateRequest('injector', injector)
 
@@ -61,20 +63,39 @@ export function asPlugin(moduleClass: Module) {
       await mod.onInit(moduleInstance)
     }
 
-    if(options.plugins)
-      for(let { plugin, opts } of options.plugins)
-        moduleInstance.register(plugin, opts)
+    initModule(moduleInstance, options)
+  }
+}
 
-    if(options.hooks)
-      for(let { name, hook } of options.hooks)
-        moduleInstance.addHook(name, hook)
+function createModuleInjector(moduleInstance: FastifyInstance, options: RyModuleOptions): Injector {
+  if(moduleInstance.injector === undefined){
+    return new Injector(options.injection)
+  } else {
+    return moduleInstance.injector.extendWith('module', options.injection)
+  }
+}
 
-    if(options.controllers)
-      for(let controller of options.controllers)
-        moduleInstance.route(asRoute(controller))
+function initModule(moduleInstance: FastifyInstance, options: RyModuleOptions) {
 
-    if(options.submodules)
-      for(let { prefix, module } of options.submodules)
-        moduleInstance.register(asPlugin(module), { prefix })
+  if(options.plugins)
+    for(let { plugin, opts } of options.plugins)
+      moduleInstance.register(plugin, opts)
+
+  if(options.hooks)
+    for(let { name, hook } of options.hooks)
+      moduleInstance.addHook(name, hook)
+
+  if(options.controllers)
+    for(let controller of options.controllers)
+      moduleInstance.route(asRoute(controller))
+
+  if(options.submodules) {
+    for(let submodule of options.submodules) {
+      if(isModule(submodule)) {
+        moduleInstance.register(asPlugin(submodule))
+      } else {
+        moduleInstance.register(asPlugin(submodule.module), { prefix: submodule.prefix })
+      }
+    }
   }
 }

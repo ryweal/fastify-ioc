@@ -28,7 +28,7 @@
     "type": "git",
     "url": "git+https://github.com/ryweal/fastify-ioc.git"
   },
-  "keywords": [],
+  "keywords": ["fastify","dependency injection"],
   "author": "ryweal",
   "license": "MIT",
   "bugs": {
