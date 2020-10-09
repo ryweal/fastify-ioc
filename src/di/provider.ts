@@ -57,6 +57,7 @@ export const DEFAULT_PROVIDERS: Array<{ key: symbol, provider: Provider<any> }> 
       if(isClass(target)) {
         return injector.resolveClass<any>(target)
       }
+      throw new Error('Target '+target+' is not valid for injection')
     }
   }
 ]
