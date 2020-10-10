@@ -1,5 +1,5 @@
 # Fastify-ioc
-Fastify-ioc is fastify plugin that provide dependency injection and modules using decorators
+Fastify-ioc is a fastify plugin that provide dependency injection and modules using decorators
 
 ## Simple example
 ```ts
@@ -51,8 +51,25 @@ WIP
     "emitDecoratorMetadata": true
 }
 ```
-## Controllers
-A controller is just a fastify route. Every events of the request life-cycle can be define
+## Documentation
+### 1. Controllers
+A controller is just a fastify route.
+
+Controller options
+```ts
+interface ControllerOptions {
+  method: HTTPMethods
+  url: string,
+  attachValidation?: boolean,
+  body?: unknown,
+  query?: unknown,
+  params?: unknown,
+  headers?: unknown,
+  response?: unknown
+}
+```
+Every events of the request life-cycle can be define. You can use dependency injection 
+in constructor or directly in a request event.
 ```ts
 interface SimpleQuery {
   key: string
@@ -69,8 +86,13 @@ interface SimpleQuery {
     required: [ 'key' ]
   }
 })
-class SimpleController implements RequestHandler, OnError {
+class SimpleController implements OnRequest, RequestHandler, OnError {
   contructor(private service: Service) {}
+
+  // If we dont add @Injectable, we have to use default parameters
+  async onRequest(request: FastifyRequest, reply: FastifyReply): Promise<void> {
+    request.log.info('We have a request !')
+  }
 
   @Injectable()
   async handler(@Reply reply: FastifyReply, @Query query: SimpleQuery): Promise<void> {
@@ -84,7 +106,7 @@ class SimpleController implements RequestHandler, OnError {
   async onError(error: Error, @Reply reply: FastifyReply): Promise<any> {
     reply.status(500)
     reply.send({
-      error: error.message
+      explosion: true
     })
   }
 }
@@ -92,13 +114,26 @@ class SimpleController implements RequestHandler, OnError {
 Sending a GET request at /foo?name=boom will throw an error catch by onError
 More information on fastify documentation.
 
-## Modules
+### 2. Modules
 A module is just a fastify plugin. A module can define submodules,
 controllers, plugins, hooks, and some options for dependency injection.
 
+Module options
+```ts
+interface RyModuleOptions {
+  controllers?: Class<RequestHandler>[]
+  submodules?: Array<RoutingModule | Module>
+  hooks?: Hook[],
+  plugins?: PluginDefinition[]
+  injection?: ContainerInitialisation
+}
+```
 Here in the RootModule we define a submodule FooModule with prefix /foo.
 Each module use the same controller SimpleController.
 ```ts
+    //...
+    import swagger from 'fastify-swagger'
+
     @Controller({
       method: 'GET',
       url: '/'
@@ -119,9 +154,22 @@ Each module use the same controller SimpleController.
       controllers: [SimpleController],
       submodules: [
         { prefix: '/foo', module: FooModule }
-      ]
+      ],
+      plugins: [
+        {
+          plugin: swagger,
+          opts: {
+            routePrefix: '/doc',
+            exposeRoute: true
+          }
+        }
+     ]
     })
-    class RootModule{}
+    class RootModule implements OnInit {
+      onInit(moduleInstance: FastifyInstance) {
+        // more complex stuff
+      }
+    }
 
     const server = fastify()
     server.register(asPlugin(RootModule))
@@ -133,9 +181,15 @@ Each module use the same controller SimpleController.
       server.log.info(`server listening on ${address}`)
     })
 ```
-Sending a GET request at / or /foo will output 'payload'
+Sending a GET request at / or /foo will output 'payload'.
 
-## Dependency injection
+You can define plugins for a module. Here we add swagger to the RootModule.
+Swagger documentation at /doc will show two endpoints GET / and GET /foo.
+
+If you have more complex initialisation to make, you can implement OnInit, 
+and have a direct access to the FastifyInstance before loading of plugins, hooks, routes and submodules.
+
+## 3. Dependency injection
 
 A class can define as injectable using @Injectable
 
@@ -146,7 +200,7 @@ A class can define as injectable using @Injectable
 class MyService {}
 ```
 
-### Scope
+### 3.1. Scope
 There is 3 types of scope
 - root
 - module
