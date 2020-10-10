@@ -222,6 +222,109 @@ root
 
 And every valid request will create a request scope on top of that.
 
-An Injectable declared in scope root will be a singleton, it will be shared will all other module
-An Injectable declared in scope module will be available only in the module where it was instantiated
-An Injectable declared in scope request will be available only for the current request
+- An Injectable declared in scope root will be a singleton, it will be shared will all other module
+- An Injectable declared in scope module will be available only in the module where it was instantiated
+- An Injectable declared in scope request will be available only for the current request
+
+### 3.2 Injector
+Initialisation of the injector
+```ts
+interface ContainerInitialisation {
+  values?: Array<{
+    key: string | symbol,
+    value: any
+  }>,
+  providers?: Array<{
+    key: string | symbol,
+    provider: Provider<any>
+  }>,
+  instances?: Array<{
+    key: string | symbol,
+    instance: any
+  }>,
+  references?: Array<{
+    key: string | symbol,
+    useClass: Class<any>
+  }>
+}
+```
+Here a little bit complex example of what you can do.
+```ts
+@Injectable({
+    scope: 'root'
+})
+class Service {}
+
+interface OtherService {}
+
+@Injectable({
+    scope: 'root'
+})
+class OtherServiceImplA implement OtherService {}
+
+@Injectable({
+    scope: 'root'
+})
+class OtherServiceImplB implement OtherService {}
+
+@Controller({
+  method: 'GET',
+  url: '/'
+})
+class SimpleController implements RequestHandler {
+  @Injectable()
+  async handler(
+    @Reply reply: FastifyReply,
+    service: Service,
+    @Lazy(Service) lazyService: Lazy<Service>,
+    @Inject('OtherService') otherService: OtherService,
+    @Value('x') x: number,
+    @Provide('OtherServiceFactory', ['A']) otherServiceWithProvide: OtherService
+  ): Promise<void> {
+    reply.send({})
+  }
+}
+@RyModule({
+  controllers: [SimpleController],
+  injection: {
+    values: [
+      { key: 'x', value: 150 }
+    ],
+    providers: [
+      { 
+        key: 'OtherServiceFactory',
+        provider: (injector: Injector, type: string) => {
+          if(type == 'A') {
+            return injector.resolveClass<>(OtherServiceImplA)
+          }
+          if(type == 'B') {
+            return injector.resolveClass<>(OtherServiceImplB)
+          }
+          
+          return injector.resolveClass<>(OtherServiceImplB)
+        }
+      }
+    ],
+    references: [
+      { key: 'OtherService', useClass: OtherServiceImplA }
+    ]
+  }
+})
+class RootModule {}
+```
+You can inject :
+- injectable class, directly like ```service```
+- interface using @Inject like ```otherService``` and add a reference in current 
+or parent module ```{ key: 'OtherService', useClass: OtherServiceImplA }```
+- value like ```x``` and add a value in current or parent 
+module ```{ key: 'x', value: 150 }```
+- lazy injection like ```lazyService``` the Service class will be instantiate 
+only once with the first call of ```lazyService.get()```, after that each call will 
+return the same instance.
+
+You also can inject more complex thing using @Provide because provider can have
+a direct access to the injector. 
+
+Everything is a provider, @Value is just a provider that 
+return ```injector.findValue(key)``` and @Reply is just an alias
+for @Value('reply'), @Inject too, etc...
