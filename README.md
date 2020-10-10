@@ -226,7 +226,7 @@ And every valid request will create a request scope on top of that.
 - An Injectable declared in scope module will be available only in the module where it was instantiated
 - An Injectable declared in scope request will be available only for the current request
 
-### 3.2 Injector
+### 3.2. Injector
 Initialisation of the injector
 ```ts
 interface ContainerInitialisation {
@@ -295,13 +295,13 @@ class SimpleController implements RequestHandler {
         key: 'OtherServiceFactory',
         provider: (injector: Injector, type: string) => {
           if(type == 'A') {
-            return injector.resolveClass<>(OtherServiceImplA)
+            return injector.resolveClass<OtherService>(OtherServiceImplA)
           }
           if(type == 'B') {
-            return injector.resolveClass<>(OtherServiceImplB)
+            return injector.resolveClass<OtherService>(OtherServiceImplB)
           }
           
-          return injector.resolveClass<>(OtherServiceImplB)
+          return injector.resolveClass<OtherService>(OtherServiceImplB)
         }
       }
     ],
@@ -328,3 +328,37 @@ a direct access to the injector.
 Everything is a provider, @Value is just a provider that 
 return ```injector.findValue(key)``` and @Reply is just an alias
 for @Value('reply'), @Inject too, etc...
+
+### 3.2.1 @Provide
+Provider options :
+```ts
+interface ProviderParameters {
+  key: string | symbol,
+  args: any[]
+}
+```
+TODO
+
+Creating a provider
+```ts
+type Provider<T> = (container: Injector, ...args:any[]) => T
+```
+TODO
+### 3.2.2 @Inject
+TODO
+### 3.2.3 @Value
+TODO
+### 3.2.4 @Lazy
+TODO
+### 3.2.5 @Body
+Alias for ```@Value('body')```, return request.body
+### 3.2.6 @Query
+Alias for ```@Value('query')```, return request.query
+### 3.2.5 @Headers
+Alias for ```@Value('headers')```, return request.headers
+### 3.2.5 @Params
+Alias for ```@Value('params')```, return request.params
+### 3.2.5 @Request
+Alias for ```@Value('request')```, return request
+### 3.2.5 @Reply
+Alias for ```@Value('reply')```, return request.reply
